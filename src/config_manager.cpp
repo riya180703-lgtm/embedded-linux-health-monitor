@@ -16,10 +16,10 @@ Config ConfigManager::load()
 {
     std::ifstream file(configPath);
 
-    if (!file.is_open())
+    if (!file)
     {
         throw std::runtime_error(
-            "Unable to open configuration file: " + configPath
+            "Cannot open config file: " + configPath
         );
     }
 
@@ -69,7 +69,65 @@ Config ConfigManager::load()
 
     config.serviceMaxRetries =
         data.at("service").at("max_retries").get<int>();
+    // Validate monitoring interval
+    if (config.intervalSeconds <= 0)
+    {
+        throw std::invalid_argument(
+            "Monitoring interval must be greater than zero");
+    }
 
+    // Validate warning and critical thresholds
+    auto validateThresholds = [](double warning,
+                                 double critical,
+                                 const std::string& name)
+    {
+        if (warning < 0 || warning > 100 ||
+            critical < 0 || critical > 100)
+        {
+            throw std::invalid_argument(
+                name + " thresholds must be between 0 and 100");
+        }
+
+        if (warning >= critical)
+        {
+            throw std::invalid_argument(
+                name + " warning threshold must be less than critical");
+        }
+    };
+
+    validateThresholds(
+        config.cpuWarning, config.cpuCritical, "CPU");
+
+    validateThresholds(
+        config.memoryWarning, config.memoryCritical, "Memory");
+
+    validateThresholds(
+        config.diskWarning, config.diskCritical, "Disk");
+
+    validateThresholds(
+        config.temperatureWarning,
+        config.temperatureCritical,
+        "Temperature");
+
+    // Validate network configuration
+    if (config.networkInterface.empty() ||
+        config.networkHost.empty())
+    {
+        throw std::invalid_argument(
+            "Network interface and host must not be empty");
+    }
+
+    // Validate service configuration
+    if (config.serviceName.empty())
+    {
+        throw std::invalid_argument(
+            "Service name must not be empty");
+    }
+
+    if (config.serviceMaxRetries < 0)
+    {
+        throw std::invalid_argument(
+            "Maximum service retries cannot be negative");
+    }
     return config;
 }
-

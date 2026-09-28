@@ -1,0 +1,28 @@
+{
+    "interval_seconds": 5,
+    "cpu": {
+        "warning": 95,
+        "critical": 80
+    },
+    "memory": {
+        "warning": 75,
+        "critical": 90
+    },
+    "disk": {
+        "warning": 80,
+        "critical": 90
+    },
+    "temperature": {
+        "warning": 70,
+        "critical": 85,
+        "path": "/sys/class/thermal/thermal_zone0/temp"
+    },
+    "network": {
+        "interface": "eth0",
+        "host": "8.8.8.8"
+    },
+    "service": {
+        "name": "ssh",
+        "max_retries": 3
+    }
+}

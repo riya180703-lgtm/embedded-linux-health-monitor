@@ -1,4 +1,4 @@
-#include "memory_monitor.h"
+#include "network_monitor.h"
 #include "monitor_result.h"
 
 #include <cassert>
@@ -6,14 +6,15 @@
 
 int main()
 {
-    MemoryMonitor memoryMonitor;
+    NetworkMonitor networkMonitor;
 
-    MonitorResult result = memoryMonitor.check(75, 90);
+    MonitorResult result =
+        networkMonitor.check("eth0", "8.8.8.8");
 
     // Verify the monitor name
-    assert(result.name == "Memory");
+    assert(result.name == "Network");
 
-    // Memory usage must be between 0 and 100 percent
+    // Verify the reported value is valid
     assert(result.value >= 0.0);
     assert(result.value <= 100.0);
 
@@ -22,7 +23,10 @@ int main()
            result.status == MonitorStatus::WARNING ||
            result.status == MonitorStatus::CRITICAL);
 
-    std::cout << "Memory monitor test passed!" << std::endl;
+    // Verify that a message was returned
+    assert(!result.message.empty());
+
+    std::cout << "Network monitor test passed!" << std::endl;
 
     return 0;
 }

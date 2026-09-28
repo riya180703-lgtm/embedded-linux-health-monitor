@@ -1,4 +1,4 @@
-#include "memory_monitor.h"
+#include "disk_monitor.h"
 #include "monitor_result.h"
 
 #include <cassert>
@@ -6,14 +6,14 @@
 
 int main()
 {
-    MemoryMonitor memoryMonitor;
+    DiskMonitor diskMonitor;
 
-    MonitorResult result = memoryMonitor.check(75, 90);
+    MonitorResult result = diskMonitor.check(80, 90);
 
     // Verify the monitor name
-    assert(result.name == "Memory");
+    assert(result.name == "Disk");
 
-    // Memory usage must be between 0 and 100 percent
+    // Disk usage must be between 0 and 100 percent
     assert(result.value >= 0.0);
     assert(result.value <= 100.0);
 
@@ -22,7 +22,7 @@ int main()
            result.status == MonitorStatus::WARNING ||
            result.status == MonitorStatus::CRITICAL);
 
-    std::cout << "Memory monitor test passed!" << std::endl;
+    std::cout << "Disk monitor test passed!" << std::endl;
 
     return 0;
 }

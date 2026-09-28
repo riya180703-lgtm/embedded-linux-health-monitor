@@ -1,0 +1,15 @@
+[Unit]
+Description=Embedded Linux Device Health Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/embedded-linux-health-monitor/build
+ExecStart=/opt/embedded-linux-health-monitor/build/health_monitor
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

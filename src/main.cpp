@@ -1,7 +1,54 @@
 #include "config_manager.h"
+#include "monitor_result.h"
+#include "cpu_monitor.h"
+#include "memory_monitor.h"
+#include "disk_monitor.h"
+#include "temperature_monitor.h"
+#include "network_monitor.h"
+#include "service_monitor.h"
 #include "logger.h"
 
+#include <chrono>
+#include <exception>
 #include <iostream>
+#include <string>
+#include <thread>
+
+void displayResult(const MonitorResult& result, Logger& logger)
+{
+    std::string status;
+    std::string unit = "%";
+    LogLevel level = LogLevel::INFO;
+
+    switch (result.status)
+    {
+        case MonitorStatus::OK:
+            status = "OK";
+            break;
+
+        case MonitorStatus::WARNING:
+            status = "WARNING";
+            level = LogLevel::WARNING;
+            break;
+
+        case MonitorStatus::CRITICAL:
+            status = "CRITICAL";
+            level = LogLevel::ERROR;
+            break;
+    }
+
+    if (result.name == "Temperature")
+        unit = " C";
+
+    std::string message =
+        result.name + ": " +
+        std::to_string(result.value) + unit +
+        " [" + status + "] - " +
+        result.message;
+
+    std::cout << message << '\n';
+    logger.log(level, message);
+}
 
 int main()
 {
@@ -15,71 +62,143 @@ int main()
 
         Config config = configManager.load();
 
+        CpuMonitor cpuMonitor;
+        MemoryMonitor memoryMonitor;
+        DiskMonitor diskMonitor;
+        TemperatureMonitor temperatureMonitor;
+        NetworkMonitor networkMonitor;
+        ServiceMonitor serviceMonitor;
+
+        // Automatic recovery settings
+        const int failureThreshold = 3;
+        const int cooldownSeconds = 30;
+
+        int consecutiveFailures = 0;
+        int recoveryAttempts = 0;
+
         logger.log(
             LogLevel::INFO,
-            "Configuration loaded successfully"
+            "Embedded Linux Health Monitor started"
         );
 
-        std::cout << "\n--- Configuration ---\n";
+        while (true)
+        {
+            std::cout << "\n--- System Health Check ---\n";
 
-        std::cout << "Interval: "
-                  << config.intervalSeconds
-                  << " seconds\n";
+            displayResult(
+                cpuMonitor.check(
+                    config.cpuWarning,
+                    config.cpuCritical
+                ),
+                logger
+            );
 
-        std::cout << "CPU warning: "
-                  << config.cpuWarning
-                  << "%\n";
+            displayResult(
+                memoryMonitor.check(
+                    config.memoryWarning,
+                    config.memoryCritical
+                ),
+                logger
+            );
 
-        std::cout << "CPU critical: "
-                  << config.cpuCritical
-                  << "%\n";
+            displayResult(
+                diskMonitor.check(
+                    config.diskWarning,
+                    config.diskCritical
+                ),
+                logger
+            );
 
-        std::cout << "Memory warning: "
-                  << config.memoryWarning
-                  << "%\n";
+            displayResult(
+                temperatureMonitor.check(
+                    config.temperaturePath,
+                    config.temperatureWarning,
+                    config.temperatureCritical
+                ),
+                logger
+            );
 
-        std::cout << "Memory critical: "
-                  << config.memoryCritical
-                  << "%\n";
+            displayResult(
+                networkMonitor.check(
+                    config.networkInterface,
+                    config.networkHost
+                ),
+                logger
+            );
 
-        std::cout << "Disk warning: "
-                  << config.diskWarning
-                  << "%\n";
+            // Check the critical service
+            MonitorResult serviceResult =
+                serviceMonitor.check(config.serviceName);
 
-        std::cout << "Disk critical: "
-                  << config.diskCritical
-                  << "%\n";
+            displayResult(serviceResult, logger);
 
-        std::cout << "Temperature warning: "
-                  << config.temperatureWarning
-                  << " C\n";
+            if (serviceResult.status == MonitorStatus::OK)
+            {
+                consecutiveFailures = 0;
+                recoveryAttempts = 0;
+            }
+            else
+            {
+                consecutiveFailures++;
 
-        std::cout << "Temperature critical: "
-                  << config.temperatureCritical
-                  << " C\n";
+                logger.log(
+                    LogLevel::WARNING,
+                    "Service failure count: " +
+                    std::to_string(consecutiveFailures)
+                );
 
-        std::cout << "Network interface: "
-                  << config.networkInterface
-                  << "\n";
+                if (consecutiveFailures >= failureThreshold)
+                {
+                    if (recoveryAttempts < config.serviceMaxRetries)
+                    {
+                        recoveryAttempts++;
 
-        std::cout << "Network host: "
-                  << config.networkHost
-                  << "\n";
+                        logger.log(
+                            LogLevel::WARNING,
+                            "Attempting service recovery: " +
+                            std::to_string(recoveryAttempts)
+                        );
 
-        std::cout << "Critical service: "
-                  << config.serviceName
-                  << "\n";
+                        bool recovered =
+                            serviceMonitor.recover(config.serviceName);
 
-        std::cout << "Maximum retries: "
-                  << config.serviceMaxRetries
-                  << "\n";
+                        if (recovered)
+                        {
+                            logger.log(
+                                LogLevel::INFO,
+                                "Service restart command succeeded"
+                            );
+                        }
+                        else
+                        {
+                            logger.log(
+                                LogLevel::ERROR,
+                                "Service restart failed"
+                            );
+                        }
+
+                        std::this_thread::sleep_for(
+                            std::chrono::seconds(cooldownSeconds)
+                        );
+                    }
+                    else
+                    {
+                        logger.log(
+                            LogLevel::ERROR,
+                            "Maximum recovery attempts reached"
+                        );
+                    }
+                }
+            }
+
+            std::this_thread::sleep_for(
+                std::chrono::seconds(config.intervalSeconds)
+            );
+        }
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Error: "
-                  << e.what()
-                  << std::endl;
-
+        std::cerr << "Error: " << e.what() << '\n';
         return 1;
     }
 
