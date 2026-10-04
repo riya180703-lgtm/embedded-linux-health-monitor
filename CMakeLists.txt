@@ -15,6 +15,7 @@ add_executable(health_monitor
     src/temperature_monitor.cpp
     src/network_monitor.cpp
     src/service_monitor.cpp
+    src/driver_interface.cpp
 )
 
 target_include_directories(health_monitor PRIVATE
@@ -71,6 +72,7 @@ set_tests_properties(ConfigTest PROPERTIES
 add_executable(test_service_monitor
     tests/test_service_monitor.cpp
     src/service_monitor.cpp
+    src/driver_interface.cpp
 )
 
 target_include_directories(test_service_monitor PRIVATE include)
