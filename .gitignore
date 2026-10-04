@@ -2,3 +2,11 @@ build/
 *.log
 *.o
 *.out
+#Kernel module build files
+driver/*.ko
+driver/*.mod
+driver/*.mod.c
+driver/.*.cmd
+driver/modules.order
+driver/Module.symvers
+

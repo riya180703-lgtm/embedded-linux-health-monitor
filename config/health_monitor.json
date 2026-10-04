@@ -23,7 +23,7 @@
     },
 
     "network": {
-        "interface": "eth0",
+        "interface": "enp0s3",
         "host": "8.8.8.8"
     },
 

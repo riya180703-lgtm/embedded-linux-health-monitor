@@ -7,6 +7,7 @@
 #include "network_monitor.h"
 #include "service_monitor.h"
 #include "logger.h"
+#include "driver_interface.h"
 
 #include <chrono>
 #include <exception>
@@ -40,11 +41,21 @@ void displayResult(const MonitorResult& result, Logger& logger)
     if (result.name == "Temperature")
         unit = " C";
 
-    std::string message =
-        result.name + ": " +
-        std::to_string(result.value) + unit +
-        " [" + status + "] - " +
-        result.message;
+    std::string message;
+    
+    if (result.name == "Temperature" &&
+    	result.message == "Temperature sensor unavailable")
+    {
+    	message = result.name + ": Sensor unavailable [" +
+    		  status + "] - " + result.message;
+    }
+    else
+    {
+    message = result.name + ": " + 
+    	      std::to_string(result.value) + unit +
+    	      " [" + status + "] - " +
+    	      result.message;
+    }
 
     std::cout << message << '\n';
     logger.log(level, message);
@@ -68,6 +79,7 @@ int main()
         TemperatureMonitor temperatureMonitor;
         NetworkMonitor networkMonitor;
         ServiceMonitor serviceMonitor;
+    DriverInterface driverInterface;
 
         // Automatic recovery settings
         const int failureThreshold = 3;
@@ -131,6 +143,9 @@ int main()
                 serviceMonitor.check(config.serviceName);
 
             displayResult(serviceResult, logger);
+            
+            std::string driverStatus = driverInterface.readStatus();
+            logger.log(LogLevel::INFO, "Kernel Driver: " + driverStatus);
 
             if (serviceResult.status == MonitorStatus::OK)
             {
@@ -191,7 +206,7 @@ int main()
                 }
             }
 
-            std::this_thread::sleep_for(
+             std::this_thread::sleep_for(
                 std::chrono::seconds(config.intervalSeconds)
             );
         }
