@@ -32,6 +32,7 @@ When the configured critical service becomes inactive, the monitor tracks consec
 - Linux `/proc` and `/sys` interfaces
 - nlohmann/json
 - CTest
+- Linux kernel module (character device driver)
 
 ## Project Structure
 
@@ -42,6 +43,7 @@ embedded-linux-health-monitor/
 ├── docs/
 │   ├── architecture.md
 │   └── test-report.md
+├── driver/
 ├── include/
 ├── src/
 ├── scripts/
